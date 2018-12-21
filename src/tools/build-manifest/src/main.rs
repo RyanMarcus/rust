@@ -202,6 +202,7 @@ struct Builder {
     rustfmt_release: String,
     llvm_tools_release: String,
     lldb_release: String,
+    gdb_release: String,
 
     input: PathBuf,
     output: PathBuf,
@@ -217,6 +218,7 @@ struct Builder {
     rustfmt_version: Option<String>,
     llvm_tools_version: Option<String>,
     lldb_version: Option<String>,
+    gdb_version: Option<String>,
 
     rust_git_commit_hash: Option<String>,
     cargo_git_commit_hash: Option<String>,
@@ -225,6 +227,7 @@ struct Builder {
     rustfmt_git_commit_hash: Option<String>,
     llvm_tools_git_commit_hash: Option<String>,
     lldb_git_commit_hash: Option<String>,
+    gdb_git_commit_hash: Option<String>,
 
     should_sign: bool,
 }
@@ -253,6 +256,7 @@ fn main() {
     let rustfmt_release = args.next().unwrap();
     let llvm_tools_release = args.next().unwrap();
     let lldb_release = args.next().unwrap();
+    let gdb_release = args.next().unwrap();
     let s3_address = args.next().unwrap();
 
     // Do not ask for a passphrase while manually testing
@@ -269,6 +273,7 @@ fn main() {
         rustfmt_release,
         llvm_tools_release,
         lldb_release,
+        gdb_release,
 
         input,
         output,
@@ -284,6 +289,7 @@ fn main() {
         rustfmt_version: None,
         llvm_tools_version: None,
         lldb_version: None,
+        gdb_version: None,
 
         rust_git_commit_hash: None,
         cargo_git_commit_hash: None,
@@ -292,6 +298,7 @@ fn main() {
         rustfmt_git_commit_hash: None,
         llvm_tools_git_commit_hash: None,
         lldb_git_commit_hash: None,
+        gdb_git_commit_hash: None,
 
         should_sign,
     }.build();
@@ -307,6 +314,7 @@ impl Builder {
         self.llvm_tools_version = self.version("llvm-tools", "x86_64-unknown-linux-gnu");
         // lldb is only built for macOS.
         self.lldb_version = self.version("lldb", "x86_64-apple-darwin");
+        self.gdb_version = self.version("lldb", "x86_64-unknown-linux-gnu");
 
         self.rust_git_commit_hash = self.git_commit_hash("rust", "x86_64-unknown-linux-gnu");
         self.cargo_git_commit_hash = self.git_commit_hash("cargo", "x86_64-unknown-linux-gnu");
@@ -316,6 +324,7 @@ impl Builder {
         self.llvm_tools_git_commit_hash = self.git_commit_hash("llvm-tools",
                                                                "x86_64-unknown-linux-gnu");
         self.lldb_git_commit_hash = self.git_commit_hash("lldb", "x86_64-unknown-linux-gnu");
+        self.lldb_git_commit_hash = self.git_commit_hash("gdb", "x86_64-unknown-linux-gnu");
 
         self.digest_and_sign();
         let manifest = self.build_manifest();
@@ -355,6 +364,7 @@ impl Builder {
         self.package("rust-analysis", &mut manifest.pkg, TARGETS);
         self.package("llvm-tools-preview", &mut manifest.pkg, TARGETS);
         self.package("lldb-preview", &mut manifest.pkg, TARGETS);
+        self.package("gdb", &mut manifest.pkg, TARGETS);
 
         manifest.renames.insert("rls".to_owned(), Rename { to: "rls-preview".to_owned() });
         manifest.renames.insert("rustfmt".to_owned(), Rename { to: "rustfmt-preview".to_owned() });
@@ -405,6 +415,7 @@ impl Builder {
                 Component { pkg: "rustfmt-preview".to_string(), target: host.to_string() },
                 Component { pkg: "llvm-tools-preview".to_string(), target: host.to_string() },
                 Component { pkg: "lldb-preview".to_string(), target: host.to_string() },
+                Component { pkg: "gdb".to_string(), target: host.to_string() },
                 Component { pkg: "rust-analysis".to_string(), target: host.to_string() },
             ]);
 
@@ -526,6 +537,8 @@ impl Builder {
             format!("llvm-tools-{}-{}.tar.gz", self.llvm_tools_release, target)
         } else if component == "lldb" || component == "lldb-preview" {
             format!("lldb-{}-{}.tar.gz", self.lldb_release, target)
+        } else if component == "gdb" {
+            format!("gdb-{}-{}.tar.gz", self.gdb_release, target)
         } else {
             format!("{}-{}-{}.tar.gz", component, self.rust_release, target)
         }
@@ -544,6 +557,8 @@ impl Builder {
             &self.llvm_tools_version
         } else if component == "lldb" || component == "lldb-preview" {
             &self.lldb_version
+        } else if component == "gdb" {
+            &self.gdb_version
         } else {
             &self.rust_version
         }
@@ -562,6 +577,8 @@ impl Builder {
             &self.llvm_tools_git_commit_hash
         } else if component == "lldb" || component == "lldb-preview" {
             &self.lldb_git_commit_hash
+        } else if component == "gdb" {
+            &self.gdb_git_commit_hash
         } else {
             &self.rust_git_commit_hash
         }
